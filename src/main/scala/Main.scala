@@ -1,63 +1,97 @@
-import Knight.{KnightPos, knightMove, nextMove}
+import scala.annotation.tailrec
+import scala.util.Random
+import Knight.{KnightPos, getGoal}
 
 object Main {
 
-  def ablePos(kl: Seq[KnightPos]): Seq[KnightPos] ={
-    kl.filter(x => x.files != 0 && x.ranks != 0)
+  var count: Int = 0
+  var start: KnightPos =_
+  var goal: KnightPos =_
+
+  private def isRangeBoard(f: String, r: String): Boolean ={
+    val l = List("1","2","3","4","5","6","7","8")
+    l.contains(f) && l.contains(r)
   }
 
-  def sortKnights(kl: Seq[KnightPos]): Seq[KnightPos] ={
-    kl.sortBy(x => x.ranks).sortBy(x => x.files)
+  private def isNum(n: String): Either[String, Int] ={
+    try Right(n.toInt)
+    catch { case e: Exception => Left(e.getMessage) }
+  }
+
+  @tailrec
+  def getMoveCount: Int = {
+    val c = io.StdIn.readLine
+    val eC: Either[String, Int] = isNum(c)
+    eC match {
+      case Right(x) => x
+      case Left(e) =>
+        println(s"The value entered is invalid \n by $e")
+        getMoveCount
+    }
+  }
+
+  @tailrec
+  private def inputKnight: KnightPos ={
+    println("file: ")
+    val file = io.StdIn.readLine
+    println("rank: ")
+    val rank = io.StdIn.readLine
+    if(isRangeBoard(file, rank)) KnightPos(file.toInt, rank.toInt)
+    else {
+      println("Please enter a value from 1 to 8.")
+      inputKnight
+    }
+  }
+
+  @tailrec
+  def getReallyMoveKnight(bfr: Option[KnightPos]): KnightPos ={
+    val k: KnightPos = inputKnight
+    if(!Knight.isReallyMove(bfr, k)) getReallyMoveKnight(bfr)
+    else k
+  }
+
+  @tailrec
+  def appRoutine(bfr: Option[KnightPos], n: Int): KnightPos ={
+    println("\n*****************************************************")
+    bfr match {
+      case Some(x) => println("\nNow Position is File: %s, Rank: %s.".format(x.files, x.ranks))
+      case None => println("Now Position is File: %s, Rank: %s.".format(start.files, start.ranks))
+    }
+    println(s"Now Count is $n/$count")
+    println(s"Your Goal is File: ${goal.files}, Rank: ${goal.ranks}")
+    println("*****************************************************")
+    val k: KnightPos = getReallyMoveKnight(bfr)
+    if(n >= count) k
+    else {
+      appRoutine(Some(k), n + 1)
+    }
   }
 
   def main(args: Array[String]): Unit = {
 
-    val knightSort = (x: Seq[KnightPos]) => sortKnights(ablePos(x)).distinct
-    val samePosList = (x: Seq[KnightPos], y: KnightPos) => x.filter(x => x == y)
+    println("*****************************************************")
+    println("**************** Welcome Knight Tour ****************")
+    println("*****************************************************")
+    println("\nPlease enter the number of times the knight moves.")
+    val c = getMoveCount
+    count = c
+    println("\nOK!")
+    println("\nPlease enter the start position of the night.")
+    start = inputKnight
+    Knight.used = Seq(start)
+    println(s"\nOK! Start position is File: ${start.files}, Rank: ${start.ranks}.")
 
-    val k = KnightPos(6,2)
-    val km1 = knightMove(k)
-    val km2 = nextMove(km1)
-    val km3 = nextMove(km2)
-    val km4 = nextMove(km3)
+    val goalList = getGoal(start, count)
+    val rdmAry = Random.nextInt(goalList.length -1)
+    goal = goalList(rdmAry)
+    println(s"\nYour goal is File: ${goal.files}, Rank: ${goal.ranks} !")
+    println("Let's Start !")
+    val userGoal: KnightPos = appRoutine(None, 1)
 
-    println(knightSort(km4)) //4回動いたポジション
-    val select = io.StdIn.readLine
-
-    val selectPosList: Seq[(KnightPos)] = samePosList(km4, knightSort(km4)(select.toInt))
-    println("select Position is " + knightSort(selectPosList))
-
-    val beforeKm4 = Knight.beforeKnightList(selectPosList, km3)
-    val beforeKm3 = Knight.beforeKnightList(beforeKm4, km2)
-    val beforeKm2 = Knight.beforeKnightList(beforeKm3, km1)
-    println("start : " + k)
-//    println("2: " + knightSort(beforeKm2))
-//    println("3: " + knightSort(beforeKm3))
-//    println("4: " + knightSort(beforeKm4))
-    println("goal : " + knightSort(selectPosList))
-
-    val f1 = io.StdIn.readLine
-    val r1 = io.StdIn.readLine
-    val mk = KnightPos(f1.toInt, r1.toInt)
-    if(knightSort(beforeKm2) contains mk) println("success")
-    else println("false")
-
-    val f2 = io.StdIn.readLine
-    val r2 = io.StdIn.readLine
-    val mk2 = KnightPos(f2.toInt, r2.toInt)
-    if(knightSort(beforeKm3) contains mk2) println("success")
-    else println("false")
-
-    val f3 = io.StdIn.readLine
-    val r3 = io.StdIn.readLine
-    val mk3 = KnightPos(f3.toInt, r3.toInt)
-    if(knightSort(beforeKm4) contains mk3) println(("success"))
-    else println("false")
-
-    val f4 = io.StdIn.readLine
-    val r4 = io.StdIn.readLine
-    val mk4 = KnightPos(f4.toInt, r4.toInt)
-    println(mk4)
+    println("\n*******************************************************\n")
+    if(userGoal == goal) println("Clear!!!")
+    else println("False...")
+    println("\n*******************************************************")
   }
 
 }
